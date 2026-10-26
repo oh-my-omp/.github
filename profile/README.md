@@ -6,6 +6,8 @@ English | [简体中文](https://github.com/oh-my-omp/.github/blob/main/profile/
 
 Plugins, extensions and a governed configuration for [Oh My Pi](https://github.com/can1357/oh-my-pi) (`omp`), the terminal coding-agent harness. Each repository is an `omp` plugin installable on its own; [omp-config](https://github.com/oh-my-omp/omp-config) wires them into one runtime that gates dispatch, judges turns in a side channel and keeps long tasks on the human's stated intent.
 
+**Strongly recommended: run omp inside Tern.** The plugins' GUI surfaces (the Todo editor, the terminal HUD, Playbook cards) are Tern panes, so the full experience comes with Tern's GUI.
+
 ## Repositories
 
 | Repository | What it adds to omp |

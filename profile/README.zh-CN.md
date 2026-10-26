@@ -6,6 +6,8 @@
 
 为终端编码代理宿主 [Oh My Pi](https://github.com/can1357/oh-my-pi)（`omp`）提供插件、扩展和一套受治理的配置。每个仓库都是可以单独安装的 `omp` 插件；[omp-config](https://github.com/oh-my-omp/omp-config) 把它们接成一个运行时：派发前设门禁，旁路判定每一轮，让长任务始终对齐人类原话里的意图。
 
+**强烈推荐搭配 Tern 使用。** 这些插件的 GUI 界面（Todo 编辑器、终端 HUD、Playbook 卡片）都是 Tern 面板，在 Tern 的 GUI 下才能获得完整体验。
+
 ## 仓库
 
 | 仓库 | 为 omp 增加的能力 |

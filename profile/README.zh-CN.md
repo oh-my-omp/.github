@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/oh-my-omp/.github/main/profile/logo.png" alt="oh-my-omp logo" width="96" align="right">
+
 # oh-my-omp
 
 [English](https://github.com/oh-my-omp/.github/blob/main/profile/README.md) | 简体中文

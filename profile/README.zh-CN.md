@@ -18,6 +18,8 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 
 各插件 README 写明前置条件（Tern、Bun、Mutagen、Codex 订阅）。
 
+**强烈推荐搭配 Tern 使用。** 这些插件的 GUI 界面（Todo 编辑器、终端 HUD、Playbook 卡片）都是 Tern 面板，在 Tern 的 GUI 下才能获得完整体验。
+
 ## 仓库
 
 | 仓库 | 为 omp 增加的能力 |

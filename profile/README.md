@@ -18,6 +18,8 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 
 Each plugin README lists its prerequisites (Tern, Bun, Mutagen, a Codex subscription).
 
+**Strongly recommended: run omp inside Tern.** The plugins' GUI surfaces (the Todo editor, the terminal HUD, Playbook cards) are Tern panes, so the full experience comes with Tern's GUI.
+
 ## Repositories
 
 | Repository | What it adds to omp |

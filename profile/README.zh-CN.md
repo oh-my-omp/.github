@@ -35,10 +35,4 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 
 ## 界面语言
 
-这里的每个插件都把面向人的文字（通知、标签、对话框、渲染器）显示为英文或中文，解析顺序相同：`OMOMP_LANG`（`en` 或 `zh`）→ `~/.omp/agent/omomp.yml` 的 `omomp-lang` 段 → `LC_ALL` / `LC_MESSAGES` / `LANG` → 英文。omp-unified-exec 也能在 Pi 下运行，只读 `OMOMP_LANG`；omp-config 的 `omomp-lang` 扩展会在启动时把该段导出到这个变量。发给模型的文字保持原样。
-
-```yaml
-# ~/.omp/agent/omomp.yml
-omomp-lang:
-  language: zh
-```
+这里的每个插件都把面向人的文字（通知、标签、对话框、渲染器）显示为英文或中文，解析顺序相同：`OMOMP_LANG`（`en` 或 `zh`）→ `LC_ALL` / `LC_MESSAGES` / `LANG` → 英文。omp-unified-exec 也能在 Pi 下运行，此时这一解析只读环境变量；omp-config 的 `omomp-lang` 扩展会在启动时把配置的语言导出为 `OMOMP_LANG`，所以只读环境变量的使用方也能拿到配置的语言。发给模型的文字保持原样。

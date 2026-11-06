@@ -35,10 +35,4 @@ Each plugin README lists its prerequisites (Tern, Bun, Mutagen, a Codex subscrip
 
 ## UI language
 
-Every plugin here shows its person-facing text (notifications, labels, dialogs, renderers) in English or Chinese, resolved the same way: `OMOMP_LANG` (`en` or `zh`), then the `omomp-lang` section of `~/.omp/agent/omomp.yml`, then `LC_ALL` / `LC_MESSAGES` / `LANG`, then English. omp-unified-exec also runs under Pi and reads only `OMOMP_LANG`, which omp-config's `omomp-lang` extension exports from that section at startup. Text sent to the model stays as written.
-
-```yaml
-# ~/.omp/agent/omomp.yml
-omomp-lang:
-  language: zh
-```
+Every plugin here shows its person-facing text (notifications, labels, dialogs, renderers) in English or Chinese, resolved the same way: `OMOMP_LANG` (`en` or `zh`), then `LC_ALL` / `LC_MESSAGES` / `LANG`, then English. omp-unified-exec also runs under Pi, where this resolution is environment-only; omp-config's `omomp-lang` extension exports the configured language as `OMOMP_LANG` at startup, so environment-only readers still pick it up. Text sent to the model stays as written.

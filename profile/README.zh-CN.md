@@ -16,7 +16,7 @@
 omp install https://github.com/oh-my-omp/omp-todo-more
 ```
 
-各插件 README 写明前置条件（Tern、Bun、Mutagen、Codex 订阅）。
+各插件 README 写明前置条件（Tern、Bun、Mutagen）。
 
 **强烈推荐搭配 Tern 使用。** 这些插件的 GUI 界面（Todo 编辑器、终端 HUD、Playbook 卡片）都是 Tern 面板，在 Tern 的 GUI 下才能获得完整体验。
 
@@ -31,7 +31,6 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 | [omp-dispatch](https://github.com/oh-my-omp/omp-dispatch) | 通过持久票据、一次性 Owner 会话和独立门禁交付 GitHub issue 图，从 issue 里的链接启动 |
 | [omp-remote-build](https://github.com/oh-my-omp/omp-remote-build) | 每个工作树在远程 Docker 主机上维护一份 Mutagen 副本，配一个由 Komodo 管理的构建/测试容器和容器 PTY 工具 |
 | [omp-thinking-translator](https://github.com/oh-my-omp/omp-thinking-translator) | 只为显示翻译可见的思考块，按行流式输出，模型按回退链依次尝试 |
-| [omp-codex-image-gen](https://github.com/oh-my-omp/omp-codex-image-gen) | 借 ChatGPT Plus/Pro 的 Codex 订阅，用 `gpt-image-2` 生成或编辑 PNG，最多参考五张图片 |
 
 ## 界面语言
 

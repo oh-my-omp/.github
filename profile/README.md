@@ -16,7 +16,7 @@ If you only want an individual plugin, install it from its repository:
 omp install https://github.com/oh-my-omp/omp-todo-more
 ```
 
-Each plugin README lists its prerequisites (Tern, Bun, Mutagen, a Codex subscription).
+Each plugin README lists its prerequisites (Tern, Bun, Mutagen).
 
 **Strongly recommended: run omp inside Tern.** The plugins' GUI surfaces (the Todo editor, the terminal HUD, Playbook cards) are Tern panes, so the full experience comes with Tern's GUI.
 
@@ -31,7 +31,6 @@ Each plugin README lists its prerequisites (Tern, Bun, Mutagen, a Codex subscrip
 | [omp-dispatch](https://github.com/oh-my-omp/omp-dispatch) | Delivers a GitHub issue graph through durable tickets, one-shot Owner sessions and independent gates, launched from a link in the issue |
 | [omp-remote-build](https://github.com/oh-my-omp/omp-remote-build) | Per-worktree Mutagen replica on a remote Docker host with a Komodo-managed build/test container and container PTY tools |
 | [omp-thinking-translator](https://github.com/oh-my-omp/omp-thinking-translator) | Translates visible assistant thinking blocks for display only, streaming per line through a fallback chain of models |
-| [omp-codex-image-gen](https://github.com/oh-my-omp/omp-codex-image-gen) | Generates or edits PNGs with `gpt-image-2` through a ChatGPT Plus/Pro Codex subscription, from up to five reference images |
 
 ## UI language
 

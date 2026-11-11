@@ -7,6 +7,14 @@
  * `omomp-release: released X.Y.Z`, `omomp-release: nothing-to-release` or
  * `omomp-release: failed: <reason>` (exit 1). A failed run pushes no ref.
  *
+ * Whether an item is published is decided by the tag, not by its position in the file: a version
+ * section `## [X.Y.Z]` with a tag `vX.Y.Z` on the remote is, in the tag's commit, the published text.
+ * A merge can drop a pull request's `## [Unreleased]` items into such a section. Before anything
+ * else the run compares each such section with the tag's copy (same changelog path, same section;
+ * sections without a tag or absent from it are skipped). A section that only gained top-level
+ * items is restored and the items move to the same `###` category of `## [Unreleased]`, where
+ * they take part in this release. Any other difference fails the run, naming the section and tag.
+ *
  *   bun omomp-release.ts [--package-dir DIR] [--version-files "A B"] [--changelog PATH]
  *                        [--remote NAME] [--github-release OWNER/REPO]
  *
@@ -15,7 +23,7 @@
  * without one. Both go through `gh` with `GH_TOKEN`. Without it nothing on GitHub is touched.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 
 type Bump = "major" | "minor" | "patch";
 type Version = readonly [number, number, number];
@@ -38,6 +46,7 @@ const BOT_NAME = "github-actions[bot]";
 const BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com";
 const UNRELEASED = "## [Unreleased]";
 const TOP_LEVEL_ITEM = /^(?:[-*+]|\d+[.)])\s/;
+const VERSION_HEADING = /^## \[(\d+\.\d+\.\d+)\](?: |$)/;
 
 function parseArgs(argv: readonly string[]): Options {
 	const options: Options = { packageDir: ".", versionFiles: [], changelog: "", remote: "origin", githubRepo: undefined };
@@ -219,7 +228,10 @@ type Changelog = { lines: string[]; unreleasedStart: number; unreleasedEnd: numb
 
 /** The changelog split at its sections; the first `##` heading must be `## [Unreleased]`. */
 function readChangelog(path: string): Changelog {
-	const lines = readFileSync(path, "utf8").split("\n");
+	return parseChangelog(path, readFileSync(path, "utf8").split("\n"));
+}
+
+function parseChangelog(path: string, lines: string[]): Changelog {
 	const first = lines.findIndex((line) => line.startsWith("## "));
 	if (first === -1 || lines[first]?.trimEnd() !== UNRELEASED)
 		return fail(`${path}: the first ## heading is ${first === -1 ? "missing" : JSON.stringify(lines[first])}, not "${UNRELEASED}"`);
@@ -250,26 +262,167 @@ function bumpFor(body: readonly string[]): Bump | undefined {
 	return "patch";
 }
 
-/** Body of `## [V]` (up to the next `##`), or undefined when the changelog has no such section. */
-function versionSection(path: string, version: string): string | undefined {
-	const lines = readFileSync(path, "utf8").split("\n");
-	const heading = lines.findIndex((line) => line === `## [${version}]` || line.startsWith(`## [${version}] `));
-	if (heading === -1) return undefined;
-	const next = lines.findIndex((line, index) => index > heading && line.startsWith("## "));
-	return trimBlank(lines.slice(heading + 1, next === -1 ? lines.length : next)).join("\n");
+type Span = { start: number; end: number };
+
+/** `## [V]` from its heading up to, not including, the next `##` heading and the blank lines before it; undefined when the changelog has no such section. */
+function findSection(lines: readonly string[], version: string): Span | undefined {
+	const start = lines.findIndex((line) => line === `## [${version}]` || line.startsWith(`## [${version}] `));
+	if (start === -1) return undefined;
+	const next = lines.findIndex((line, index) => index > start && line.startsWith("## "));
+	let end = next === -1 ? lines.length : next;
+	while (end > start + 1 && lines[end - 1]?.trim() === "") end--;
+	return { start, end };
+}
+
+/** Body of `## [V]`, or undefined when the changelog has no such section. */
+function versionSection(lines: readonly string[], version: string): string | undefined {
+	const span = findSection(lines, version);
+	return span === undefined ? undefined : trimBlank(lines.slice(span.start + 1, span.end)).join("\n");
+}
+
+/** Remote tags `vX.Y.Z` and the commit each names: the record of what a release published. */
+function remoteVersionTags(remote: string): Map<string, string> {
+	const tags = new Map<string, string>();
+	for (const line of git("ls-remote", "--tags", remote, "refs/tags/v*").split("\n")) {
+		const [sha, ref] = line.split(/\s+/);
+		if (sha === undefined || ref === undefined) continue;
+		// An annotated tag lists its object and then the peeled commit as `<tag>^{}`; the commit wins.
+		tags.set(ref.slice("refs/tags/".length).replace(/\^\{\}$/, ""), sha);
+	}
+	return tags;
+}
+
+/** The lines of `path` in the commit `sha`, or undefined when that commit has no such file. */
+function fileAt(sha: string, path: string): string[] | undefined {
+	if (git("ls-tree", "--name-only", sha, "--", path) === "") return undefined;
+	const shown = run(["git", "show", `${sha}:${path}`]);
+	if (!shown.ok) return fail(`git show ${sha}:${path}: ${shown.stderr.trim()}`);
+	return shown.stdout.split("\n");
+}
+
+/** Lines of `tag` missing from `current` and positions in `current` missing from `tag`, from a longest common subsequence. */
+function diffLines(tag: readonly string[], current: readonly string[]): { removed: string[]; added: number[] } {
+	const common: number[][] = Array.from({ length: tag.length + 1 }, () => new Array<number>(current.length + 1).fill(0));
+	const at = (i: number, j: number): number => common[i]?.[j] ?? 0;
+	for (let i = tag.length - 1; i >= 0; i--)
+		for (let j = current.length - 1; j >= 0; j--) {
+			const row = common[i];
+			if (row !== undefined) row[j] = tag[i] === current[j] ? at(i + 1, j + 1) + 1 : Math.max(at(i + 1, j), at(i, j + 1));
+		}
+	const removed: string[] = [];
+	const added: number[] = [];
+	let i = 0;
+	let j = 0;
+	while (i < tag.length || j < current.length) {
+		if (i < tag.length && j < current.length && tag[i] === current[j]) {
+			i++;
+			j++;
+		} else if (j >= current.length || (i < tag.length && at(i + 1, j) >= at(i, j + 1))) {
+			removed.push(tag[i] ?? "");
+			i++;
+		} else {
+			added.push(j);
+			j++;
+		}
+	}
+	return { removed, added };
+}
+
+type MovedItem = { heading: string; item: string };
+
+/** Index just after the last non-blank line of `body[from, to)`, or `from` when that range is blank. */
+function afterLastContent(body: readonly string[], from: number, to: number): number {
+	let end = to;
+	while (end > from && body[end - 1]?.trim() === "") end--;
+	return end;
+}
+
+/** Appends `item` under the `###` line `heading` of an Unreleased body ("" = above any `###`), creating the category at the end when absent. */
+function addItem(body: string[], heading: string, item: string): void {
+	const headings = body.flatMap((line, index) => (line.startsWith("### ") ? [index] : []));
+	if (heading === "") {
+		const first = headings[0] ?? body.length;
+		const end = afterLastContent(body, 0, first);
+		if (end > 0) body.splice(end, 0, item);
+		else body.splice(0, 0, item, ...(first < body.length ? [""] : []));
+		return;
+	}
+	const index = headings.find((h) => body[h]?.trimEnd() === heading);
+	if (index === undefined) {
+		body.push(...(body.length === 0 ? [] : [""]), heading, "", item);
+		return;
+	}
+	const next = headings.find((h) => h > index) ?? body.length;
+	const end = afterLastContent(body, index + 1, next);
+	if (end > index + 1) body.splice(end, 0, item);
+	else body.splice(index + 1, 0, "", item);
+}
+
+/**
+ * A version section is published content, and the tag `vX.Y.Z` is its record: the commit it names
+ * holds the section as released. A merge can still drop a pull request's `## [Unreleased]` items into
+ * a published section. For each section with a tag on the remote, whose commit has the same changelog
+ * path and the same section, a current section that only gained top-level items is restored to the
+ * tag's text and its extra items move to the same `###` category of `## [Unreleased]`. Any other
+ * difference fails the run. Sections without a tag, or absent from the tag's changelog, are skipped.
+ * Works on the in-memory lines; the release step writes the file.
+ */
+function restorePublishedSections(options: Options, changelogPath: string, changelog: Changelog): Changelog {
+	const tags = remoteVersionTags(options.remote);
+	const path = normalize(changelogPath);
+	const lines = [...changelog.lines];
+	const moved: MovedItem[] = [];
+	const restores: { span: Span; tagText: string[] }[] = [];
+	const versions = new Set(lines.flatMap((line) => VERSION_HEADING.exec(line)?.slice(1, 2) ?? []));
+	for (const version of versions) {
+		const tag = `v${version}`;
+		const sha = tags.get(tag);
+		const span = findSection(lines, version);
+		if (sha === undefined || span === undefined) continue;
+		const tagLines = fileAt(sha, path);
+		const tagSpan = tagLines === undefined ? undefined : findSection(tagLines, version);
+		if (tagLines === undefined || tagSpan === undefined) continue;
+		const tagText = tagLines.slice(tagSpan.start, tagSpan.end);
+		const current = lines.slice(span.start, span.end);
+		const { removed, added } = diffLines(tagText, current);
+		if (removed.length === 0 && added.length === 0) continue;
+		const foreign = added.flatMap((index) => (TOP_LEVEL_ITEM.test(current[index] ?? "") ? [] : [current[index] ?? ""]));
+		if (removed.length > 0 || foreign.length > 0) {
+			const quoted = (texts: readonly string[]): string => texts.map((text) => JSON.stringify(text)).join(", ");
+			const parts = [
+				removed.length > 0 ? `lines of the tag changed or removed: ${quoted(removed)}` : "",
+				added.length > 0 ? `lines added: ${quoted(added.map((index) => current[index] ?? ""))}` : "",
+				foreign.length > 0 ? `not top-level items: ${quoted(foreign)}` : "",
+			].filter((part) => part !== "");
+			fail(`${changelogPath}: section "## [${version}]" differs from its tag ${tag}: ${parts.join("; ")}`);
+		}
+		for (const index of added) {
+			const heading = current.slice(0, index).findLast((line) => line.startsWith("### "))?.trimEnd() ?? "";
+			moved.push({ heading, item: current[index] ?? "" });
+		}
+		console.log(`omomp-release: moved ${added.length} top-level item(s) of "## [${version}]" that are not in ${tag} back to "${UNRELEASED}"`);
+		restores.push({ span, tagText });
+	}
+	if (restores.length === 0) return changelog;
+	// Version sections follow `## [Unreleased]`, so replacing them from the last one keeps every start valid.
+	for (const { span, tagText } of restores.reverse()) lines.splice(span.start, span.end - span.start, ...tagText);
+	const body = trimBlank(lines.slice(changelog.unreleasedStart + 1, changelog.unreleasedEnd));
+	for (const { heading, item } of moved) addItem(body, heading, item);
+	lines.splice(changelog.unreleasedStart + 1, changelog.unreleasedEnd - changelog.unreleasedStart - 1, "", ...body, "");
+	return parseChangelog(changelogPath, lines);
 }
 
 const gmt9Date = (): string => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
 
 /** Creates the Release of the current version when its tag is on the remote without one. Pushes nothing. */
-function backfillRelease(options: Options, repo: string, version: string, changelog: string): void {
+function backfillRelease(options: Options, repo: string, version: string, changelog: Changelog, changelogPath: string): void {
 	const tag = `v${version}`;
 	if (remoteRef(options.remote, `refs/tags/${tag}`) === undefined) return;
 	const view = run(["gh", "release", "view", tag, "--repo", repo, "--json", "tagName"]);
 	if (view.ok) return;
 	if (!/not found/i.test(view.stderr)) fail(`backfill: gh release view ${tag}: ${view.stderr.trim()}`);
-	const notes = versionSection(changelog, version);
-	if (notes === undefined) fail(`backfill: ${changelog} has no "## [${version}]" section for the Release of ${tag}`);
+	const notes = versionSection(changelog.lines, version);
+	if (notes === undefined) fail(`backfill: ${changelogPath} has no "## [${version}]" section for the Release of ${tag}`);
 	const created = run(["gh", "release", "create", tag, "--repo", repo, "--verify-tag", "--title", tag, "--notes-file", "-"], notes);
 	if (!created.ok) fail(`backfill: gh release create ${tag}: ${created.stderr.trim()}`);
 	console.log(`omomp-release: backfilled the GitHub Release ${tag}`);
@@ -287,9 +440,9 @@ function release(options: Options): Outcome {
 	for (const file of options.versionFiles)
 		for (const found of readVersions(file))
 			if (found !== current) fail(`version file ${file} has version ${found}, but ${pkgPath} has ${current}`);
-	const changelog = readChangelog(changelogPath);
+	const changelog = restorePublishedSections(options, changelogPath, readChangelog(changelogPath));
 
-	if (options.githubRepo !== undefined) backfillRelease(options, options.githubRepo, current, changelogPath);
+	if (options.githubRepo !== undefined) backfillRelease(options, options.githubRepo, current, changelog, changelogPath);
 
 	const body = trimBlank(changelog.lines.slice(changelog.unreleasedStart + 1, changelog.unreleasedEnd));
 	const bump = bumpFor(body);

@@ -342,10 +342,14 @@ function main(): number {
 			console.log("omomp-release: nothing-to-release");
 			if (output) writeFileSync(output, "result=nothing-to-release\n", { flag: "a" });
 			return 0;
-		case "failed":
-			console.log(`omomp-release: failed: ${outcome.reason}`);
+		case "failed": {
+			// A reason carrying a tool's stderr spans lines: print those lines first so the result stays the last line.
+			const newline = outcome.reason.indexOf("\n");
+			if (newline >= 0) console.log(outcome.reason.slice(newline + 1));
+			console.log(`omomp-release: failed: ${newline < 0 ? outcome.reason : outcome.reason.slice(0, newline)}`);
 			if (output) writeFileSync(output, "result=failed\n", { flag: "a" });
 			return 1;
+		}
 		default: {
 			const never: never = outcome;
 			return never;

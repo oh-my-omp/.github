@@ -175,16 +175,21 @@ function tomlVersion(text: string): RegExpExecArray | undefined {
 const jsonVersionPaths = (file: string): readonly (readonly string[])[] =>
 	file.endsWith("package-lock.json") ? [["version"], ["packages", "", "version"]] : [["version"]];
 
+/** Parsed JSON of `file`; a file that is not valid JSON fails the run. */
+function parseJsonFile(file: string, text: string): unknown {
+	try {
+		return JSON.parse(text);
+	} catch (error) {
+		return fail(`${file} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+	}
+}
+
 /** Every version string the file carries; a file whose versions cannot be read fails the run. */
 function readVersions(file: string): string[] {
 	if (!existsSync(file)) return fail(`version file ${file} does not exist`);
 	const text = readFileSync(file, "utf8");
 	if (file.endsWith(".json")) {
-		try {
-			JSON.parse(text);
-		} catch (error) {
-			return fail(`version file ${file} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
-		}
+		parseJsonFile(file, text);
 		const paths = jsonVersionPaths(file);
 		const spans = jsonStringSpans(text, paths);
 		if (spans.length !== paths.length) return fail(`version file ${file}: cannot read ${paths.map((path) => path.join(".")).join(" and ")}`);
@@ -273,8 +278,7 @@ function backfillRelease(options: Options, repo: string, version: string, change
 function release(options: Options): Outcome {
 	const pkgPath = join(options.packageDir, "package.json");
 	if (!existsSync(pkgPath)) fail(`${pkgPath} does not exist`);
-	const pkgText = readFileSync(pkgPath, "utf8");
-	const pkg: unknown = JSON.parse(pkgText);
+	const pkg = parseJsonFile(pkgPath, readFileSync(pkgPath, "utf8"));
 	const changelogPath = resolveChangelog(options, pkg);
 	const versionFiles = [pkgPath, ...options.versionFiles];
 	const [current] = readVersions(pkgPath);

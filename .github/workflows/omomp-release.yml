@@ -1,0 +1,63 @@
+name: omomp-release
+
+# Reusable release run for omomp members. A member calls it from its own
+# .github/workflows/omomp-release.yml (schedule + workflow_dispatch, contents: write);
+# README.md shows the caller file. The logic is scripts/omomp-release.ts of this repository,
+# checked out from main beside the member; its header lists the three results.
+
+on:
+  workflow_call:
+    inputs:
+      package-dir:
+        description: Package root (the directory of package.json), relative to the repository root.
+        type: string
+        default: "."
+      version-files:
+        description: Further files carrying the version, relative to the repository root, separated by whitespace (.json or .toml).
+        type: string
+        default: ""
+      changelog:
+        description: Changelog path relative to the repository root; empty means the member declaration's omomp.changelog under package-dir.
+        type: string
+        default: ""
+
+concurrency:
+  group: omomp-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          path: member
+
+      - uses: actions/checkout@v6
+        with:
+          repository: oh-my-omp/.github
+          ref: main
+          path: omomp-release-tool
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Release
+        working-directory: member
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_DIR: ${{ inputs.package-dir }}
+          VERSION_FILES: ${{ inputs.version-files }}
+          CHANGELOG: ${{ inputs.changelog }}
+          REPOSITORY: ${{ github.repository }}
+        run: >-
+          bun ../omomp-release-tool/scripts/omomp-release.ts
+          --package-dir "$PACKAGE_DIR"
+          --version-files "$VERSION_FILES"
+          --changelog "$CHANGELOG"
+          --github-release "$REPOSITORY"

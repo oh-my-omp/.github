@@ -4,19 +4,26 @@ The [oh-my-omp](https://github.com/oh-my-omp) organization profile. GitHub rende
 
 ## omomp release workflow
 
-`.github/workflows/omomp-release.yml` is the release run every omomp member calls. The logic lives in `scripts/omomp-release.ts`, and the workflow checks it out from `main` beside the member. One run promotes the member's `## [Unreleased]` changelog section to a version and bumps every version file. It commits `chore: release X.Y.Z` on `main`. It moves `main`, the tag `vX.Y.Z` and the `release` branch in one atomic push, then creates the GitHub Release `vX.Y.Z` from that section.
+`.github/workflows/omomp-release.yml` is the release run every omomp member calls. The logic lives in `scripts/omomp-release.ts`, and the workflow checks it out from `main` beside the member. One run first restores the changelog's published sections against their tags (see [Run results](#run-results)). It then promotes the member's `## [Unreleased]` changelog section to a version and bumps every version file. It commits `chore: release X.Y.Z` on `main`. It moves `main`, the tag `vX.Y.Z` and the `release` branch in one atomic push, then creates the GitHub Release `vX.Y.Z` from that section.
 
 ### Run results
 
 A run ends in exactly one result:
 
 - **`released`:** the run published a new version as described above.
-- **`nothing-to-release`:** `## [Unreleased]` has no top-level list item, so the run pushes nothing.
+- **`nothing-to-release`:** after the published-section check below, `## [Unreleased]` has no top-level list item, so the run pushes nothing.
 - **`failed`:** the run exits non-zero, pushes no ref, and the log names the reason.
+
+#### Published sections
+
+The tag decides what is published, not a section's position in the file. A merge that crosses a release can drop a pull request's `## [Unreleased]` items into the section the release just wrote. Before backfilling or computing a version, the run compares every `## [X.Y.Z]` section that has a tag `vX.Y.Z` on the remote with the same section of the same changelog path in the tag's commit. A section without a tag, or one the tag's commit does not have (a missing file or section), is skipped and kept as is.
+
+- **Only extra top-level list items:** the section is restored to the tag's text. Each extra item moves to the same `###` category of `## [Unreleased]`, which is created at the end when it is missing. The items then count in this release's version bump and notes.
+- **Any other difference:** a tag line changed or removed, an extra line that is not a top-level list item (including a new `###` heading or a continuation line), or a changed heading. The run fails with `failed:`, naming the `## [X.Y.Z]` section, the tag `vX.Y.Z` and the differing lines.
 
 ### Missing Releases
 
-Before deciding, a run checks the current version `V` of `<package-dir>/package.json`. If the tag `vV` is on the remote but has no GitHub Release, the run backfills the Release from the changelog's `## [V]` section. The backfill pushes nothing.
+After the published-section check and before deciding, a run checks the current version `V` of `<package-dir>/package.json`. If the tag `vV` is on the remote but has no GitHub Release, the run backfills the Release from the restored changelog's `## [V]` section. The backfill pushes nothing.
 
 ### Version bump
 

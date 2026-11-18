@@ -1,0 +1,67 @@
+name: omomp-check
+
+# Reusable check run for oh-my-omp repositories. A repository calls it from its own
+# .github/workflows/omomp-check.yml on push to main and on every pull_request; README.md shows the
+# caller file. Mode `bun` (default): install with the frozen bun.lock, `bun run check`, `bun run test`,
+# then the shared-copy comparison. Mode `copies`: only the shared-copy comparison, for a fork that keeps
+# its upstream's package manager and CI. The comparison runs verify.ts from oh-my-omp/shared main against
+# the repository's omomp-shared.json; a repository without that file passes it. Any failing step fails
+# the run and the later steps do not run.
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "`bun` runs install, check, test and the copy comparison; `copies` runs only the copy comparison."
+        type: string
+        default: bun
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mode
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          case "$MODE" in
+            bun|copies) echo "omomp-check: mode $MODE" ;;
+            *) echo "omomp-check: unknown mode '$MODE'; expected bun or copies" >&2; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@main
+        with:
+          path: repository
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@main
+        with:
+          bun-version: latest
+
+      - name: Install dependencies (frozen bun.lock)
+        if: inputs.mode == 'bun'
+        working-directory: repository
+        run: bun install --frozen-lockfile
+
+      - name: Check
+        if: inputs.mode == 'bun'
+        working-directory: repository
+        run: bun run check
+
+      - name: Test
+        if: inputs.mode == 'bun'
+        working-directory: repository
+        run: bun run test
+
+      - uses: actions/checkout@main
+        with:
+          repository: oh-my-omp/shared
+          ref: main
+          path: omomp-shared
+          persist-credentials: false
+
+      - name: Compare shared copies
+        run: bun omomp-shared/verify.ts repository

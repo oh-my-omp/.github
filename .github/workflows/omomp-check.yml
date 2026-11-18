@@ -6,7 +6,8 @@ name: omomp-check
 # then the shared-copy comparison. Mode `copies`: only the shared-copy comparison, for a fork that keeps
 # its upstream's package manager and CI. The comparison runs verify.ts from oh-my-omp/shared main against
 # the repository's omomp-shared.json; a repository without that file passes it. Any failing step fails
-# the run and the later steps do not run.
+# the run and the later steps do not run. The repository is checked out with its full history so that
+# tests which read earlier commits (`git show <sha>:<path>`) run as they do locally.
 
 on:
   workflow_call:
@@ -35,6 +36,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           path: repository
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@main

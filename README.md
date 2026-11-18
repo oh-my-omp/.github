@@ -88,6 +88,8 @@ A local run pushes to `origin` exactly like the workflow: it uses `--remote <nam
 - **`bun` (default):** `bun install --frozen-lockfile`, `bun run check`, `bun run test`, then the shared-copy comparison. The repository's `package.json` provides `check` (Biome and the TypeScript type check) and `test` (the tests that run on a plain Linux runner; tests that need a real PTY, the Tern GUI, Docker or a model session stay in the repository's own manual entries).
 - **`copies`:** only the shared-copy comparison. It is for a fork that keeps its upstream's package manager and CI (omp-unified-exec).
 
+The repository is checked out with its full history, so tests that read earlier commits with `git show <sha>:<path>` work as they do in a local clone.
+
 The comparison checks out [`oh-my-omp/shared`](https://github.com/oh-my-omp/shared) `main` and runs its `verify.ts` against the repository: every file the repository declares in `omomp-shared.json` must equal the same file under shared `src/` byte for byte. A repository without `omomp-shared.json` passes it. Any failing step fails the run, and the steps after it do not run.
 
 ### Caller file

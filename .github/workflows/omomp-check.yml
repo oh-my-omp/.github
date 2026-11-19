@@ -1,14 +1,5 @@
 name: omomp-check
 
-# Reusable check run for oh-my-omp repositories. A repository calls it from its own
-# .github/workflows/omomp-check.yml on push to main and on every pull_request; README.md shows the
-# caller file. Mode `bun` (default): install with the frozen bun.lock, `bun run check`, `bun run test`,
-# then the shared-copy comparison. Mode `copies`: only the shared-copy comparison, for a fork that keeps
-# its upstream's package manager and CI. The comparison runs verify.ts from oh-my-omp/shared main against
-# the repository's omomp-shared.json; a repository without that file passes it. Any failing step fails
-# the run and the later steps do not run. The repository is checked out with its full history so that
-# tests which read earlier commits (`git show <sha>:<path>`) run as they do locally.
-
 on:
   workflow_call:
     inputs:

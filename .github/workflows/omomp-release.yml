@@ -1,10 +1,5 @@
 name: omomp-release
 
-# Reusable release run for omomp members. A member calls it from its own
-# .github/workflows/omomp-release.yml (schedule + workflow_dispatch, contents: write);
-# README.md shows the caller file. The logic is scripts/omomp-release.ts of this repository,
-# checked out from main beside the member; its header lists the three results.
-
 on:
   workflow_call:
     inputs:

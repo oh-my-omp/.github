@@ -1,27 +1,4 @@
 #!/usr/bin/env bun
-/**
- * omomp release run: promotes `## [Unreleased]` of a member's changelog to a version section,
- * bumps every version file, commits `chore: release X.Y.Z` on main and pushes main, tag
- * `vX.Y.Z` and `release` in one atomic push. Run it at the root of a git checkout whose HEAD is
- * the remote main. Each run ends in exactly one result, printed as the last line:
- * `omomp-release: released X.Y.Z`, `omomp-release: nothing-to-release` or
- * `omomp-release: failed: <reason>` (exit 1). A failed run pushes no ref.
- *
- * Whether an item is published is decided by the tag, not by its position in the file: a version
- * section `## [X.Y.Z]` with a tag `vX.Y.Z` on the remote is, in the tag's commit, the published text.
- * A merge can drop a pull request's `## [Unreleased]` items into such a section. Before anything
- * else the run compares each such section with the tag's copy (same changelog path, same section;
- * sections without a tag or absent from it are skipped). A section that only gained top-level
- * items is restored and the items move to the same `###` category of `## [Unreleased]`, where
- * they take part in this release. Any other difference fails the run, naming the section and tag.
- *
- *   bun omomp-release.ts [--package-dir DIR] [--version-files "A B"] [--changelog PATH]
- *                        [--remote NAME] [--github-release OWNER/REPO]
- *
- * `--github-release` (the workflow passes it) also creates the GitHub Release of a new version and,
- * before anything else, backfills the Release of the current version when its tag is on the remote
- * without one. Both go through `gh` with `GH_TOKEN`. Without it nothing on GitHub is touched.
- */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, normalize } from "node:path";
 
@@ -115,7 +92,6 @@ function bumpVersion([major, minor, patch]: Version, bump: Bump): Version {
 	}
 }
 
-/** The member declaration and the changelog path it resolves to (`--changelog` wins, relative to the repo root). */
 function resolveChangelog(options: Options, pkg: unknown): string {
 	const declaration = typeof pkg === "object" && pkg !== null && "omomp" in pkg ? pkg.omomp : undefined;
 	if (typeof declaration !== "object" || declaration === null || !("changelog" in declaration))
@@ -127,10 +103,6 @@ function resolveChangelog(options: Options, pkg: unknown): string {
 	return path;
 }
 
-/**
- * Spans of the JSON string values at the given key paths, found by scanning the text so a
- * rewrite changes only those bytes. `paths` are keys from the root, e.g. `["packages", "", "version"]`.
- */
 function jsonStringSpans(text: string, paths: readonly (readonly string[])[]): { path: readonly string[]; start: number; end: number }[] {
 	const wanted = new Set(paths.map((path) => JSON.stringify(path)));
 	const spans: { path: readonly string[]; start: number; end: number }[] = [];
@@ -173,7 +145,6 @@ function jsonStringSpans(text: string, paths: readonly (readonly string[])[]): {
 
 const tomlVersionLine = /^(version\s*=\s*")([^"]*)(")/m;
 
-/** The top-level `version = "..."` of a TOML file: the match must come before the first table header. */
 function tomlVersion(text: string): RegExpExecArray | undefined {
 	const match = tomlVersionLine.exec(text);
 	if (!match) return undefined;
@@ -184,7 +155,6 @@ function tomlVersion(text: string): RegExpExecArray | undefined {
 const jsonVersionPaths = (file: string): readonly (readonly string[])[] =>
 	file.endsWith("package-lock.json") ? [["version"], ["packages", "", "version"]] : [["version"]];
 
-/** Parsed JSON of `file`; a file that is not valid JSON fails the run. */
 function parseJsonFile(file: string, text: string): unknown {
 	try {
 		return JSON.parse(text);
@@ -193,7 +163,6 @@ function parseJsonFile(file: string, text: string): unknown {
 	}
 }
 
-/** Every version string the file carries; a file whose versions cannot be read fails the run. */
 function readVersions(file: string): string[] {
 	if (!existsSync(file)) return fail(`version file ${file} does not exist`);
 	const text = readFileSync(file, "utf8");
@@ -226,7 +195,6 @@ function writeVersion(file: string, version: string): void {
 
 type Changelog = { lines: string[]; unreleasedStart: number; unreleasedEnd: number };
 
-/** The changelog split at its sections; the first `##` heading must be `## [Unreleased]`. */
 function readChangelog(path: string): Changelog {
 	return parseChangelog(path, readFileSync(path, "utf8").split("\n"));
 }
@@ -239,7 +207,6 @@ function parseChangelog(path: string, lines: string[]): Changelog {
 	return { lines, unreleasedStart: first, unreleasedEnd: next === -1 ? lines.length : next };
 }
 
-/** Body lines of the section without leading and trailing blank lines. */
 function trimBlank(lines: readonly string[]): string[] {
 	let start = 0;
 	let end = lines.length;
@@ -248,7 +215,6 @@ function trimBlank(lines: readonly string[]): string[] {
 	return lines.slice(start, end);
 }
 
-/** Version bump from the `###` categories that hold top-level items; items above any `###` count as patch. */
 function bumpFor(body: readonly string[]): Bump | undefined {
 	let category = "";
 	const categories = new Set<string>();
@@ -264,7 +230,6 @@ function bumpFor(body: readonly string[]): Bump | undefined {
 
 type Span = { start: number; end: number };
 
-/** `## [V]` from its heading up to, not including, the next `##` heading and the blank lines before it; undefined when the changelog has no such section. */
 function findSection(lines: readonly string[], version: string): Span | undefined {
 	const start = lines.findIndex((line) => line === `## [${version}]` || line.startsWith(`## [${version}] `));
 	if (start === -1) return undefined;
@@ -274,25 +239,21 @@ function findSection(lines: readonly string[], version: string): Span | undefine
 	return { start, end };
 }
 
-/** Body of `## [V]`, or undefined when the changelog has no such section. */
 function versionSection(lines: readonly string[], version: string): string | undefined {
 	const span = findSection(lines, version);
 	return span === undefined ? undefined : trimBlank(lines.slice(span.start + 1, span.end)).join("\n");
 }
 
-/** Remote tags `vX.Y.Z` and the commit each names: the record of what a release published. */
 function remoteVersionTags(remote: string): Map<string, string> {
 	const tags = new Map<string, string>();
 	for (const line of git("ls-remote", "--tags", remote, "refs/tags/v*").split("\n")) {
 		const [sha, ref] = line.split(/\s+/);
 		if (sha === undefined || ref === undefined) continue;
-		// An annotated tag lists its object and then the peeled commit as `<tag>^{}`; the commit wins.
 		tags.set(ref.slice("refs/tags/".length).replace(/\^\{\}$/, ""), sha);
 	}
 	return tags;
 }
 
-/** The lines of `path` in the commit `sha`, or undefined when that commit has no such file. */
 function fileAt(sha: string, path: string): string[] | undefined {
 	if (git("ls-tree", "--name-only", sha, "--", path) === "") return undefined;
 	const shown = run(["git", "show", `${sha}:${path}`]);
@@ -300,7 +261,6 @@ function fileAt(sha: string, path: string): string[] | undefined {
 	return shown.stdout.split("\n");
 }
 
-/** Lines of `tag` missing from `current` and positions in `current` missing from `tag`, from a longest common subsequence. */
 function diffLines(tag: readonly string[], current: readonly string[]): { removed: string[]; added: number[] } {
 	const common: number[][] = Array.from({ length: tag.length + 1 }, () => new Array<number>(current.length + 1).fill(0));
 	const at = (i: number, j: number): number => common[i]?.[j] ?? 0;
@@ -330,14 +290,12 @@ function diffLines(tag: readonly string[], current: readonly string[]): { remove
 
 type MovedItem = { heading: string; item: string };
 
-/** Index just after the last non-blank line of `body[from, to)`, or `from` when that range is blank. */
 function afterLastContent(body: readonly string[], from: number, to: number): number {
 	let end = to;
 	while (end > from && body[end - 1]?.trim() === "") end--;
 	return end;
 }
 
-/** Appends `item` under the `###` line `heading` of an Unreleased body ("" = above any `###`), creating the category at the end when absent. */
 function addItem(body: string[], heading: string, item: string): void {
 	const headings = body.flatMap((line, index) => (line.startsWith("### ") ? [index] : []));
 	if (heading === "") {
@@ -358,15 +316,6 @@ function addItem(body: string[], heading: string, item: string): void {
 	else body.splice(index + 1, 0, "", item);
 }
 
-/**
- * A version section is published content, and the tag `vX.Y.Z` is its record: the commit it names
- * holds the section as released. A merge can still drop a pull request's `## [Unreleased]` items into
- * a published section. For each section with a tag on the remote, whose commit has the same changelog
- * path and the same section, a current section that only gained top-level items is restored to the
- * tag's text and its extra items move to the same `###` category of `## [Unreleased]`. Any other
- * difference fails the run. Sections without a tag, or absent from the tag's changelog, are skipped.
- * Works on the in-memory lines; the release step writes the file.
- */
 function restorePublishedSections(options: Options, changelogPath: string, changelog: Changelog): Changelog {
 	const tags = remoteVersionTags(options.remote);
 	const path = normalize(changelogPath);
@@ -404,7 +353,6 @@ function restorePublishedSections(options: Options, changelogPath: string, chang
 		restores.push({ span, tagText });
 	}
 	if (restores.length === 0) return changelog;
-	// Version sections follow `## [Unreleased]`, so replacing them from the last one keeps every start valid.
 	for (const { span, tagText } of restores.reverse()) lines.splice(span.start, span.end - span.start, ...tagText);
 	const body = trimBlank(lines.slice(changelog.unreleasedStart + 1, changelog.unreleasedEnd));
 	for (const { heading, item } of moved) addItem(body, heading, item);
@@ -414,7 +362,6 @@ function restorePublishedSections(options: Options, changelogPath: string, chang
 
 const gmt9Date = (): string => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
 
-/** Creates the Release of the current version when its tag is on the remote without one. Pushes nothing. */
 function backfillRelease(options: Options, repo: string, version: string, changelog: Changelog, changelogPath: string): void {
 	const tag = `v${version}`;
 	if (remoteRef(options.remote, `refs/tags/${tag}`) === undefined) return;
@@ -496,7 +443,6 @@ function main(): number {
 			if (output) writeFileSync(output, "result=nothing-to-release\n", { flag: "a" });
 			return 0;
 		case "failed": {
-			// A reason carrying a tool's stderr spans lines: print those lines first so the result stays the last line.
 			const newline = outcome.reason.indexOf("\n");
 			if (newline >= 0) console.log(outcome.reason.slice(newline + 1));
 			console.log(`omomp-release: failed: ${newline < 0 ? outcome.reason : outcome.reason.slice(0, newline)}`);

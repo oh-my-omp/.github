@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       mode:
-        description: "`bun` runs install, check, test and the copy comparison; `copies` runs only the copy comparison."
+        description: "`bun` runs the dependency check, install with the newest @oh-my-pi packages, check, test and the copy comparison; `copies` runs only the dependency check and the copy comparison."
         type: string
         default: bun
 
@@ -34,10 +34,29 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: actions/checkout@main
+        with:
+          repository: oh-my-omp/shared
+          ref: main
+          path: omomp-shared
+          persist-credentials: false
+
+      - name: Dependency convention
+        run: bun omomp-shared/deps.ts check repository
+
       - name: Install dependencies (frozen bun.lock)
         if: inputs.mode == 'bun'
         working-directory: repository
         run: bun install --frozen-lockfile
+
+      - name: Upgrade @oh-my-pi packages to their newest release
+        if: inputs.mode == 'bun'
+        working-directory: repository
+        run: |
+          hosts="$(bun ../omomp-shared/deps.ts host .)"
+          if [ -n "$hosts" ]; then
+            bun update $hosts
+          fi
 
       - name: Check
         if: inputs.mode == 'bun'
@@ -48,13 +67,6 @@ jobs:
         if: inputs.mode == 'bun'
         working-directory: repository
         run: bun run test
-
-      - uses: actions/checkout@main
-        with:
-          repository: oh-my-omp/shared
-          ref: main
-          path: omomp-shared
-          persist-credentials: false
 
       - name: Compare shared copies
         run: bun omomp-shared/verify.ts repository

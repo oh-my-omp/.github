@@ -83,10 +83,12 @@ A local run pushes to `origin` exactly like the workflow: it uses `--remote <nam
 
 ## omomp check workflow
 
-`.github/workflows/omomp-check.yml` is the check run every oh-my-omp repository calls on pushes to `main` and on pull requests. It takes one input, `mode`:
+`.github/workflows/omomp-check.yml` is the check run every oh-my-omp repository calls on pushes to `main`, on pull requests and once a day. It takes one input, `mode`:
 
-- **`bun` (default):** `bun install --frozen-lockfile`, `bun run check`, `bun run test`, then the shared-copy comparison. The repository's `package.json` provides `check` (Biome and the TypeScript type check) and `test` (the tests that run on a plain Linux runner; tests that need a real PTY, the Tern GUI, Docker or a model session stay in the repository's own manual entries).
-- **`copies`:** only the shared-copy comparison. It is for a fork that keeps its upstream's package manager and CI (omp-unified-exec).
+- **`bun` (default):** the dependency check, `bun install --frozen-lockfile`, `bun update` of every `@oh-my-pi` package the repository's `package.json` lists (so the check runs against omp's newest release, not the locked one), `bun run check`, `bun run test`, then the shared-copy comparison. The repository's `package.json` provides `check` (Biome and the TypeScript type check) and `test` (the tests that run on a plain Linux runner; tests that need a real PTY, the Tern GUI, Docker or a model session stay in the repository's own manual entries).
+- **`copies`:** only the dependency check and the shared-copy comparison. It is for a fork that keeps its upstream's package manager and CI (omp-unified-exec); that CI upgrades the `@oh-my-pi` packages itself.
+
+The dependency check runs `deps.ts check` from [`oh-my-omp/shared`](https://github.com/oh-my-omp/shared) `main`: every `dependencies`, `devDependencies` and `optionalDependencies` entry of `package.json` must be `latest` (or a git dependency that names no commit), every `peerDependencies` entry `*`, no `@earendil-works/*`, `@mariozechner/*`, `typebox` or `@sinclair/typebox` package may appear, and no tracked TypeScript file may `declare module "@oh-my-pi/…"`.
 
 The repository is checked out with its full history, so tests that read earlier commits with `git show <sha>:<path>` work as they do in a local clone.
 
@@ -103,6 +105,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "0 18 * * *"
 
 permissions:
   contents: read
@@ -122,4 +126,4 @@ jobs:
 act pull_request -W .github/workflows/omomp-check.yml
 ```
 
-The comparison alone is `bun <shared checkout>/verify.ts <repository root>`.
+The comparison alone is `bun <shared checkout>/verify.ts <repository root>`; the dependency check alone is `bun <shared checkout>/deps.ts check <repository root>`.

@@ -25,7 +25,7 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 | 仓库 | 为 omp 增加的能力 |
 |---|---|
 | [omp-config](https://github.com/oh-my-omp/omp-config) | 版本化配置：分层系统提示、按成本与可信度分级的子代理、本地扩展（派发与交付门禁、JUDGE 角色旁路检查、输入润色、工作树与重启工具）、启动时自动更新和轻量模式 |
-| [omp-todo-more](https://github.com/oh-my-omp/omp-todo-more) | 替换原生 Todo：目标、阶段、逐项说明与时间预算、续做提醒、完成即提交、`todo://` 状态 URL 和 Tern 编辑器 |
+| [omp-todo-more](https://github.com/oh-my-omp/omp-todo-more) | 替换原生 Todo：目标、阶段、逐项说明与时间预算、续做提醒、完成即提交和 Tern 编辑器 |
 | [omp-unified-exec](https://github.com/oh-my-omp/omp-unified-exec) | 长驻 PTY 会话（`exec_command`、`write_stdin`、`monitor` 等），用于 REPL、TUI、`ssh` 和开发服务器；在 Tern 中有终端 HUD，人可以旁观并输入 |
 | [omp-playbooks](https://github.com/oh-my-omp/omp-playbooks) | Playbook：把设计、执行 prompt 和编排放进一份 YAML 文档，人和代理在 Tern 面板里以卡片共同编辑，支持 Run 和冻结的子代理 Launch |
 | [omp-dispatch](https://github.com/oh-my-omp/omp-dispatch) | 通过持久票据、一次性 Owner 会话和独立门禁交付 GitHub issue 图，从 issue 里的链接启动 |

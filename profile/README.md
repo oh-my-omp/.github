@@ -25,7 +25,7 @@ Each plugin README lists its prerequisites (Tern, Bun, Mutagen).
 | Repository | What it adds to omp |
 |---|---|
 | [omp-config](https://github.com/oh-my-omp/omp-config) | The versioned configuration: system-prompt layers, cost/trust-tiered subagents, local extensions (dispatch and delivery gates, JUDGE-role sideband checks, input polish, worktree and restart tools), a startup auto-updater and a light mode |
-| [omp-todo-more](https://github.com/oh-my-omp/omp-todo-more) | Rich Todo that replaces the native one: goal, phases, per-item explanation and time budget, continuation reminders, commit-on-done, `todo://` state URLs and a Tern editor |
+| [omp-todo-more](https://github.com/oh-my-omp/omp-todo-more) | Rich Todo that replaces the native one: goal, phases, per-item explanation and time budget, continuation reminders, commit-on-done and a Tern editor |
 | [omp-unified-exec](https://github.com/oh-my-omp/omp-unified-exec) | Long-lived PTY sessions (`exec_command`, `write_stdin`, `monitor`, …) for REPLs, TUIs, `ssh` and dev servers, with a terminal HUD in Tern that a human can watch and type into |
 | [omp-playbooks](https://github.com/oh-my-omp/omp-playbooks) | Playbooks: design, execution prompts and orchestration in one YAML document that people and agents co-edit as cards in a Tern pane, with Runs and frozen subagent Launches |
 | [omp-dispatch](https://github.com/oh-my-omp/omp-dispatch) | Delivers a GitHub issue graph through durable tickets, one-shot Owner sessions and independent gates, launched from a link in the issue |

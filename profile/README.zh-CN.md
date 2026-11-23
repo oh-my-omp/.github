@@ -18,7 +18,7 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 
 各插件 README 写明前置条件（Tern、Bun、Mutagen）。
 
-**强烈推荐搭配 Tern 使用。** 这些插件的 GUI 界面（Todo 编辑器、终端 HUD、Playbook 卡片）都是 Tern 面板，在 Tern 的 GUI 下才能获得完整体验。
+**强烈推荐搭配 Tern 使用。** 这些插件的 GUI 界面（Todo 编辑器、tray/jobs 页终端屏幕预览与 Console 浮层、Playbook 卡片）都在 Tern 中呈现，在 Tern 的 GUI 下才能获得完整体验。
 
 ## 仓库
 
@@ -26,7 +26,7 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 |---|---|
 | [omp-config](https://github.com/oh-my-omp/omp-config) | 版本化配置：分层系统提示、按成本与可信度分级的子代理、本地扩展（派发与交付门禁、JUDGE 角色旁路检查、输入润色、工作树与重启工具）、启动时自动更新和轻量模式 |
 | [omp-todo-more](https://github.com/oh-my-omp/omp-todo-more) | 替换原生 Todo：目标、阶段、逐项说明与时间预算、续做提醒、完成即提交和 Tern 编辑器 |
-| [omp-unified-exec](https://github.com/oh-my-omp/omp-unified-exec) | 长驻 PTY 会话（`exec_command`、`write_stdin`、`monitor` 等），用于 REPL、TUI、`ssh` 和开发服务器；在 Tern 中有终端 HUD，人可以旁观并输入 |
+| [omp-actual-terminal](https://github.com/oh-my-omp/omp-actual-terminal) | 接管 `bash` 的 `pty: true`，将长驻终端登记为 omp 原生 job，由模型通过 `write_stdin`、`monitor` 等驱动（用于 REPL、TUI、`ssh` 和开发服务器），并在 Tern 的 tray 与 jobs 页显示屏幕预览，可从 jobs 页打开 Console 人工接管输入 |
 | [omp-playbooks](https://github.com/oh-my-omp/omp-playbooks) | Playbook：把设计、执行 prompt 和编排放进一份 YAML 文档，人和代理在 Tern 面板里以卡片共同编辑，支持 Run 和冻结的子代理 Launch |
 | [omp-dispatch](https://github.com/oh-my-omp/omp-dispatch) | 通过持久票据、一次性 Owner 会话和独立门禁交付 GitHub issue 图，从 issue 里的链接启动 |
 | [omp-remote-build](https://github.com/oh-my-omp/omp-remote-build) | 每个工作树在远程 Docker 主机上维护一份 Mutagen 副本，配一个由 Komodo 管理的构建/测试容器和容器 PTY 工具 |
@@ -34,4 +34,4 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 
 ## 界面语言
 
-这里的每个插件都把面向人的文字（通知、标签、对话框、渲染器）显示为英文或中文，解析顺序相同：`OMOMP_LANG`（`en` 或 `zh`）→ `LC_ALL` / `LC_MESSAGES` / `LANG` → 英文。omp-unified-exec 也能在 Pi 下运行，此时这一解析只读环境变量；omp-config 的 `omomp-lang` 扩展会在启动时把配置的语言导出为 `OMOMP_LANG`，所以只读环境变量的使用方也能拿到配置的语言。发给模型的文字保持原样。
+这里的每个插件都只服务 `omp`，并把面向人的文字（通知、标签、对话框、渲染器）显示为英文或中文，解析顺序相同：`OMOMP_LANG`（`en` 或 `zh`）→ `LC_ALL` / `LC_MESSAGES` / `LANG` → 英文。omp-config 的 `omomp-lang` 扩展会在启动时把配置的语言导出为 `OMOMP_LANG`，所以只读环境变量的使用方也能拿到配置的语言。发给模型的文字保持原样。

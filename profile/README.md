@@ -18,7 +18,7 @@ omp install https://github.com/oh-my-omp/omp-todo-more
 
 Each plugin README lists its prerequisites (Tern, Bun, Mutagen).
 
-**Strongly recommended: run omp inside Tern.** The plugins' GUI surfaces (the Todo editor, the terminal HUD, Playbook cards) are Tern panes, so the full experience comes with Tern's GUI.
+**Strongly recommended: run omp inside Tern.** The plugins' GUI surfaces (the Todo editor, terminal screen previews in the tray/jobs sheet and the Console overlay, Playbook cards) live in Tern, so the full experience comes with Tern's GUI.
 
 ## Repositories
 
@@ -26,7 +26,7 @@ Each plugin README lists its prerequisites (Tern, Bun, Mutagen).
 |---|---|
 | [omp-config](https://github.com/oh-my-omp/omp-config) | The versioned configuration: system-prompt layers, cost/trust-tiered subagents, local extensions (dispatch and delivery gates, JUDGE-role sideband checks, input polish, worktree and restart tools), a startup auto-updater and a light mode |
 | [omp-todo-more](https://github.com/oh-my-omp/omp-todo-more) | Rich Todo that replaces the native one: goal, phases, per-item explanation and time budget, continuation reminders, commit-on-done and a Tern editor |
-| [omp-unified-exec](https://github.com/oh-my-omp/omp-unified-exec) | Long-lived PTY sessions (`exec_command`, `write_stdin`, `monitor`, …) for REPLs, TUIs, `ssh` and dev servers, with a terminal HUD in Tern that a human can watch and type into |
+| [omp-actual-terminal](https://github.com/oh-my-omp/omp-actual-terminal) | Takes over `bash` (`pty: true`) to run long-lived terminals registered as native omp jobs (`write_stdin`, `monitor`, …) for REPLs, TUIs, `ssh` and dev servers, with screen previews in Tern's tray and jobs sheet and a Console opened from the jobs sheet for human takeover |
 | [omp-playbooks](https://github.com/oh-my-omp/omp-playbooks) | Playbooks: design, execution prompts and orchestration in one YAML document that people and agents co-edit as cards in a Tern pane, with Runs and frozen subagent Launches |
 | [omp-dispatch](https://github.com/oh-my-omp/omp-dispatch) | Delivers a GitHub issue graph through durable tickets, one-shot Owner sessions and independent gates, launched from a link in the issue |
 | [omp-remote-build](https://github.com/oh-my-omp/omp-remote-build) | Per-worktree Mutagen replica on a remote Docker host with a Komodo-managed build/test container and container PTY tools |
@@ -34,4 +34,4 @@ Each plugin README lists its prerequisites (Tern, Bun, Mutagen).
 
 ## UI language
 
-Every plugin here shows its person-facing text (notifications, labels, dialogs, renderers) in English or Chinese, resolved the same way: `OMOMP_LANG` (`en` or `zh`), then `LC_ALL` / `LC_MESSAGES` / `LANG`, then English. omp-unified-exec also runs under Pi, where this resolution is environment-only; omp-config's `omomp-lang` extension exports the configured language as `OMOMP_LANG` at startup, so environment-only readers still pick it up. Text sent to the model stays as written.
+Every plugin here serves `omp` only and shows its person-facing text (notifications, labels, dialogs, renderers) in English or Chinese, resolved the same way: `OMOMP_LANG` (`en` or `zh`), then `LC_ALL` / `LC_MESSAGES` / `LANG`, then English. `omp-config`'s `omomp-lang` extension exports the configured language as `OMOMP_LANG` at startup, so environment-only readers still pick it up. Text sent to the model stays as written.
